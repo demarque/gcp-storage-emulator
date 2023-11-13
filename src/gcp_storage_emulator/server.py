@@ -1,6 +1,7 @@
 import gzip
 import json
 import logging
+import os
 import re
 import threading
 import time
@@ -11,7 +12,7 @@ from http import HTTPStatus, server
 from urllib.parse import parse_qs, unquote, urlparse
 
 from gcp_storage_emulator import settings
-from gcp_storage_emulator.handlers import buckets, objects
+from gcp_storage_emulator.handlers import buckets, objects, notifications
 from gcp_storage_emulator.storage import Storage
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,14 @@ HANDLERS = (
             settings.API_ENDPOINT
         ),
         {GET: objects.get, DELETE: objects.delete, PATCH: objects.patch},
+    ),
+    (
+        r"^{}/b/(?P<bucket_name>[-.\w]+)/notificationConfigs$".format(settings.API_ENDPOINT),
+        {GET: notifications.ls, POST: notifications.insert},
+    ),
+    (
+        r"^{}/b/(?P<bucket_name>[-.\w]+)/notificationConfigs/(?P<notification_id>.*[^/]+)$".format(settings.API_ENDPOINT),
+        {GET: notifications.get, DELETE: notifications.delete},
     ),
     # Non-default API endpoints
     (
@@ -208,12 +217,12 @@ class Request(object):
         self._request_handler = request_handler
         self._server_address = request_handler.server.server_address
         self._base_url = "http://{}:{}".format(
-            self._server_address[0], self._server_address[1]
+            os.environ["HOST"], os.environ["PORT"]
         )
         self._full_url = self._base_url + self._path
         self._parsed_url = urlparse(self._full_url)
         self._query = parse_qs(self._parsed_url.query)
-        self._methtod = method
+        self._method = method
         self._data = None
         self._parsed_params = None
 
@@ -231,7 +240,7 @@ class Request(object):
 
     @property
     def method(self):
-        return self._methtod
+        return self._method
 
     @property
     def query(self):
@@ -293,7 +302,7 @@ class Response(object):
 
     def close(self):
         self._handler.send_response(self.status.value, self.status.phrase)
-        for k, v in self._headers.items():
+        for (k, v) in self._headers.items():
             self._handler.send_header(k, v)
 
         content = self._content
