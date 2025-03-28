@@ -149,3 +149,35 @@ blob = bucket.blob("blob1")
 blob.upload_from_string("test1")
 print(blob.download_as_bytes())
 ```
+
+### Troubleshooting
+If you encounter the following error:
+```
+Starting server at storage-emulator:9023
+Traceback (most recent call last):
+  File "/usr/local/bin/gcp-storage-emulator", line 8, in <module>
+    sys.exit(main())
+  File "/usr/local/lib/python3.10/site-packages/gcp_storage_emulator/__main__.py", line 112, in main
+    server = get_server(
+  File "/usr/local/lib/python3.10/site-packages/gcp_storage_emulator/__main__.py", line 18, in get_server
+    server = create_server(host, port, memory, default_bucket, data_dir=data_dir)
+  File "/usr/local/lib/python3.10/site-packages/gcp_storage_emulator/server.py", line 447, in create_server
+    return Server(
+  File "/usr/local/lib/python3.10/site-packages/gcp_storage_emulator/server.py", line 413, in __init__
+    self._storage = Storage(use_memory_fs=in_memory, data_dir=data_dir)
+  File "/usr/local/lib/python3.10/site-packages/gcp_storage_emulator/storage.py", line 35, in __init__
+    self._read_config_from_file()
+  File "/usr/local/lib/python3.10/site-packages/gcp_storage_emulator/storage.py", line 51, in _read_config_from_file
+    data = json.load(meta)
+  File "/usr/local/lib/python3.10/json/__init__.py", line 293, in load
+    return loads(fp.read(),
+  File "/usr/local/lib/python3.10/json/__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "/usr/local/lib/python3.10/json/decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/local/lib/python3.10/json/decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 3405 column 35 (char 211867)
+```
+It is because the configuration file is corrupted. The way to reinitialize your setip is by deleting the folder cloudstorage that is automatically created. At start, the emulator will rewrite everything.
+In the warehouse project, it is done by deleting ./.devcontainer/cloudstorage.
